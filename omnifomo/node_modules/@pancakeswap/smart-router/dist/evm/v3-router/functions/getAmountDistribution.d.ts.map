@@ -1,0 +1,1 @@
+{"version":3,"file":"getAmountDistribution.d.ts","sourceRoot":"","sources":["../../../../evm/v3-router/functions/getAmountDistribution.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,cAAc,EAAY,MAAM,kBAAkB,CAAA;AAErE;;;;;;;;GAQG;AACH,wBAAgB,qBAAqB,CACnC,MAAM,EAAE,cAAc,CAAC,QAAQ,CAAC,EAChC,mBAAmB,EAAE,MAAM,GAC1B,CAAC,MAAM,EAAE,EAAE,cAAc,CAAC,QAAQ,CAAC,EAAE,CAAC,CAaxC"}

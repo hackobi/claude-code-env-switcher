@@ -1,0 +1,1 @@
+{"version":3,"file":"getNativeWrappedToken.d.ts","sourceRoot":"","sources":["../../../../evm/v3-router/utils/getNativeWrappedToken.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,KAAK,EAAW,MAAM,kBAAkB,CAAA;AAE1D,wBAAgB,qBAAqB,CAAC,OAAO,EAAE,OAAO,GAAG,KAAK,GAAG,IAAI,CAEpE"}

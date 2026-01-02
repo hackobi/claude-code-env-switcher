@@ -1,0 +1,6 @@
+import { Currency, CurrencyAmount, Trade, TradeType } from '@pancakeswap/sdk';
+import { BestTradeOptions } from './types';
+export declare const getBestTradeFromV2ExactIn: <In extends Currency, Out extends Currency>(amountIn: CurrencyAmount<In>, output: Out, options: BestTradeOptions) => Promise<Trade<In, Out, TradeType.EXACT_INPUT> | Trade<Out, In, TradeType.EXACT_OUTPUT> | null>;
+export declare const getBestTradeFromV2ExactOut: <In extends Currency, Out extends Currency>(amountIn: CurrencyAmount<In>, output: Out, options: BestTradeOptions) => Promise<Trade<In, Out, TradeType.EXACT_INPUT> | Trade<Out, In, TradeType.EXACT_OUTPUT> | null>;
+export declare function getBestTradeFromV2<TInput extends Currency, TOutput extends Currency, TTradeType extends TradeType>(amountIn: CurrencyAmount<TInput>, output: TOutput, tradeType: TTradeType, options: BestTradeOptions): Promise<Trade<TInput, TOutput, TradeType.EXACT_INPUT> | Trade<TOutput, TInput, TradeType.EXACT_OUTPUT> | null>;
+//# sourceMappingURL=getBestTradeFromV2.d.ts.map

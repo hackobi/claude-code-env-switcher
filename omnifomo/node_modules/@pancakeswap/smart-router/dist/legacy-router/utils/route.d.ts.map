@@ -1,0 +1,1 @@
+{"version":3,"file":"route.d.ts","sourceRoot":"","sources":["../../../legacy-router/utils/route.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,KAAK,EAAE,MAAM,kBAAkB,CAAA;AAElD,OAAO,EAAE,mBAAmB,EAAE,MAAM,UAAU,CAAA;AAG9C,wBAAgB,WAAW,CAAC,GAAG,SAAS,QAAQ,EAAE,IAAI,SAAS,QAAQ,EACrE,KAAK,EAAE,mBAAmB,CAAC,GAAG,EAAE,IAAI,CAAC,GACpC,KAAK,CAAC,GAAG,EAAE,IAAI,CAAC,CAiBlB"}

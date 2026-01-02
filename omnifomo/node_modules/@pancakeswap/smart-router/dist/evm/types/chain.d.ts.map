@@ -1,0 +1,1 @@
+{"version":3,"file":"chain.d.ts","sourceRoot":"","sources":["../../../evm/types/chain.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,OAAO,EAAE,KAAK,EAAE,MAAM,kBAAkB,CAAA;AAGjD,MAAM,MAAM,QAAQ,CAAC,CAAC,IAAI;IACxB,QAAQ,EAAE,OAAO,IAAI,OAAO,GAAG,CAAC;CACjC,CAAA;AAED,MAAM,MAAM,cAAc,GAAG,QAAQ,CAAC,KAAK,EAAE,CAAC,CAAA"}

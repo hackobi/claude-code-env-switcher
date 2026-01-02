@@ -1,0 +1,1 @@
+{"version":3,"file":"gasCost.d.ts","sourceRoot":"","sources":["../../../../evm/v3-router/types/gasCost.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,cAAc,EAAE,MAAM,kBAAkB,CAAA;AAE3D,MAAM,WAAW,OAAO;IACtB,WAAW,EAAE,MAAM,CAAA;IAEnB,cAAc,EAAE,cAAc,CAAC,QAAQ,CAAC,CAAA;IACxC,YAAY,EAAE,cAAc,CAAC,QAAQ,CAAC,CAAA;CACvC"}

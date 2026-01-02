@@ -1,0 +1,35 @@
+{
+  "name": "omnifomo",
+  "version": "0.1.0",
+  "description": "SocialFi betting platform on Demos Network",
+  "type": "module",
+  "scripts": {
+    "planner": "npx tsx core-planner/planner.ts",
+    "planner:live": "npx tsx core-planner/planner.ts --live",
+    "server": "npx tsx core-planner/server.ts",
+    "server:live": "npx tsx core-planner/server.ts --live",
+    "orchestrator": "npx tsx core-planner/orchestrator.ts",
+    "agent-a": "npx tsx agent-a-oracle/index.ts",
+    "agent-a:server": "npx tsx agent-a-oracle/agent-a-server.ts",
+    "agent-b": "npx tsx agent-b-settle/index.ts",
+    "agent-b:server": "npx tsx agent-b-settle/agent-b-server.ts",
+    "start:all": "npm run orchestrator & npm run agent-a:server & npm run agent-b:server",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "echo 'No linter configured'"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.7",
+    "@kynesyslabs/demosdk": "latest",
+    "hono": "^4.11.3",
+    "ioredis": "^5.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}

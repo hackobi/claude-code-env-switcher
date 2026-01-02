@@ -1,0 +1,155 @@
+{
+  "$schema": "demos-gcr/v1",
+  "namespace": "omnifomo",
+  "description": "GCR State Schema for OmniFOMO SocialFi Betting Platform",
+  "entities": {
+    "MomentMarket": {
+      "description": "A betting market tied to a social moment or cross-chain event",
+      "fields": {
+        "id": {
+          "type": "bytes32",
+          "description": "Unique market identifier (hash of source + metric + deadline)"
+        },
+        "sourceContext": {
+          "type": "enum",
+          "values": ["Web2_X", "Web2_Farcaster", "Web2_YouTube", "XM_Ethereum", "XM_Base", "XM_Solana"],
+          "description": "Origin context of the metric being tracked"
+        },
+        "targetMetric": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "enum",
+              "values": ["views", "likes", "retweets", "bridgeVolume", "txCount", "tvl"]
+            },
+            "sourceId": {
+              "type": "string",
+              "description": "Tweet ID, cast hash, contract address, etc."
+            }
+          }
+        },
+        "threshold": {
+          "type": "uint256",
+          "description": "Target value for OVER bets to win"
+        },
+        "deadline": {
+          "type": "uint64",
+          "description": "Unix timestamp when market resolves"
+        },
+        "status": {
+          "type": "enum",
+          "values": ["Open", "Locked", "Resolving", "Resolved", "Disputed"],
+          "default": "Open"
+        },
+        "resolution": {
+          "type": "object",
+          "nullable": true,
+          "properties": {
+            "finalValue": { "type": "uint256" },
+            "winningDirection": { "type": "enum", "values": ["OVER", "UNDER"] },
+            "attestationHash": { "type": "bytes32" },
+            "resolvedAt": { "type": "uint64" }
+          }
+        },
+        "poolState": {
+          "type": "object",
+          "properties": {
+            "totalOverStake": { "type": "uint256", "fhe": true },
+            "totalUnderStake": { "type": "uint256", "fhe": true },
+            "participantCount": { "type": "uint32" }
+          }
+        }
+      },
+      "indexes": ["sourceContext", "status", "deadline"]
+    },
+    "UserPosition": {
+      "description": "Individual user's stake in a market",
+      "fields": {
+        "id": {
+          "type": "bytes32",
+          "description": "Hash of userId + marketId"
+        },
+        "userId": {
+          "type": "address",
+          "description": "User's cross-chain identity (Demos unified address)"
+        },
+        "marketId": {
+          "type": "bytes32",
+          "description": "Reference to MomentMarket.id"
+        },
+        "stakeAmount": {
+          "type": "uint256",
+          "fhe": true,
+          "description": "Encrypted stake amount, revealed at resolution"
+        },
+        "direction": {
+          "type": "enum",
+          "values": ["OVER", "UNDER"]
+        },
+        "sourceChain": {
+          "type": "enum",
+          "values": ["Ethereum", "Base", "Solana", "Arbitrum", "Polygon"],
+          "description": "Chain where user deposited stake"
+        },
+        "depositToken": {
+          "type": "address",
+          "description": "Original token deposited (Gas Tank handles conversion)"
+        },
+        "createdAt": {
+          "type": "uint64"
+        },
+        "claimed": {
+          "type": "bool",
+          "default": false
+        }
+      },
+      "indexes": ["userId", "marketId", "sourceChain"]
+    },
+    "DAHRAttestation": {
+      "description": "Signed proof of Web2 data fetch",
+      "fields": {
+        "id": { "type": "bytes32" },
+        "marketId": { "type": "bytes32" },
+        "fetchedAt": { "type": "uint64" },
+        "rawValue": { "type": "uint256" },
+        "proofHash": { "type": "bytes32", "description": "Hash of TLS session proof" },
+        "oracleSignature": { "type": "bytes" },
+        "status": {
+          "type": "enum",
+          "values": ["Pending", "Verified", "Challenged", "Finalized"]
+        }
+      }
+    }
+  },
+  "intents": {
+    "CreateMarket": {
+      "params": ["sourceContext", "targetMetric", "threshold", "deadline"],
+      "emits": "MomentMarket"
+    },
+    "PlaceBet": {
+      "params": ["marketId", "direction", "stakeAmount", "sourceChain", "depositToken"],
+      "emits": "UserPosition",
+      "requires": ["GasTank.convert", "FHE.encrypt"]
+    },
+    "SubmitAttestation": {
+      "params": ["marketId", "rawValue", "proofHash", "signature"],
+      "emits": "DAHRAttestation",
+      "triggers": "ResolveMarket"
+    },
+    "ResolveMarket": {
+      "params": ["marketId", "attestationId"],
+      "updates": "MomentMarket.status",
+      "requires": ["FHE.decrypt", "XM.settlePositions"]
+    },
+    "ClaimWinnings": {
+      "params": ["positionId"],
+      "requires": ["GasTank.distribute"],
+      "updates": "UserPosition.claimed"
+    }
+  },
+  "xmRoutes": {
+    "Ethereum": { "contract": "0x...", "gasTank": "0x..." },
+    "Base": { "contract": "0x...", "gasTank": "0x..." },
+    "Solana": { "program": "...", "gasTank": "..." }
+  }
+}
