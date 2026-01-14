@@ -6,9 +6,10 @@ yarn-error.log*
 
 # Wallet files (IMPORTANT: Keep private!)
 demos-wallet-*.json
-wallet-*.json
 *.wallet
 *.mnemonic
+batch-wallets/
+archive/
 
 # Environment files
 .env

@@ -1,47 +1,52 @@
 # Demos Faucet Automation Tool
 
-Automated wallet creation and faucet request system for the Demos Network. This tool helps you create wallets and automatically request test tokens from the Demos faucet.
+Automated wallet creation, faucet funding, and token transfer system for the Demos Network.
 
 ## Features
 
-- 🔐 **Wallet Generation**: Create new Demos wallets with secure mnemonic generation
-- 💰 **Automatic Faucet Requests**: Request test tokens from https://faucet.demos.sh/
-- 🤖 **Full Automation**: Create multiple wallets and request tokens automatically
-- 📱 **Interactive CLI**: User-friendly command-line interface
-- 💾 **Wallet Management**: Save/load wallet information securely
-- 🔄 **Batch Operations**: Handle multiple wallets efficiently
-- 📊 **Status Monitoring**: Check faucet status and transaction details
+- **Wallet Generation**: Create new Demos wallets with secure mnemonic generation
+- **Automatic Faucet Requests**: Request test tokens from https://faucet.demos.sh/
+- **Batch Operations**: Create multiple wallets, fund via faucet, and transfer tokens
+- **Token Transfers**: Send DEM tokens using the correct SDK sequence
+- **Balance Checking**: Verify wallet balances across multiple wallets
 
 ## Installation
 
 ```bash
-# Clone or create the project
-cd demos-faucet-automation
-
-# Install dependencies
 npm install
-
-# Make CLI executable (optional)
-npm link
 ```
 
 ## Quick Start
 
-### Interactive Mode (Recommended)
+### Interactive Mode
 ```bash
-# Start interactive mode with guided prompts
 npm start
 # or
 node src/cli.js interactive
 ```
 
-### Automated Workflow
+### Create Wallets and Request Tokens
 ```bash
-# Create 5 wallets and request tokens automatically
 node src/cli.js auto --count 5
+```
 
-# Create wallets only (skip faucet requests)
-node src/cli.js auto --count 3 --skip-faucet
+## Project Structure
+
+```
+├── src/                    # Core modules
+│   ├── cli.js              # Command-line interface
+│   ├── wallet-generator.js # Wallet creation utilities
+│   ├── faucet-requester.js # Faucet API integration
+│   └── transfer.js         # Token transfer utilities
+├── scripts/                # Utility scripts
+│   ├── batch-create-fund-transfer.js  # Full automation pipeline
+│   ├── transfer-to-target.js          # Transfer tokens to target address
+│   ├── sweep-all.js                   # Sweep remaining balances
+│   ├── check-balances.js              # Check wallet balances
+│   └── check-old-wallets.js           # Check archived wallets
+├── batch-wallets/          # Generated wallet files
+├── archive/                # Old experimental scripts and docs
+└── package.json
 ```
 
 ## Command Reference
@@ -51,9 +56,6 @@ node src/cli.js auto --count 3 --skip-faucet
 ```bash
 # Create a single wallet
 node src/cli.js wallet create
-
-# Create with specific mnemonic
-node src/cli.js wallet create --mnemonic "your twelve word mnemonic phrase here"
 
 # Create multiple wallets
 node src/cli.js wallet create-multiple --count 10
@@ -71,190 +73,94 @@ node src/cli.js faucet status
 # Request tokens for specific address
 node src/cli.js faucet request 0x1234567890abcdef...
 
-# Request tokens for multiple addresses
-node src/cli.js faucet request-multiple 0x123... 0x456... 0x789...
-
 # Request tokens for all wallet files
 node src/cli.js faucet request-from-files
-
-# Check transaction status
-node src/cli.js faucet check-tx <transaction-hash>
 ```
 
-### Direct Script Usage
+### Transfer Scripts
 
 ```bash
-# Wallet generator only
-node src/wallet-generator.js
-node src/wallet-generator.js --count 5
-node src/wallet-generator.js --mnemonic "your mnemonic here"
+# Full pipeline: create wallets, fund, transfer to target
+node scripts/batch-create-fund-transfer.js
 
-# Faucet requester only  
-node src/faucet-requester.js --status
-node src/faucet-requester.js --address 0x123...
-node src/faucet-requester.js --files
+# Transfer from existing wallets to target
+node scripts/transfer-to-target.js
+
+# Sweep all remaining balances to target
+node scripts/sweep-all.js
+
+# Check balances of all wallets
+node scripts/check-balances.js
 ```
 
-## API Usage
+## SDK Transfer Method
 
-### Wallet Generator
+The correct sequence for transferring DEM tokens:
 
 ```javascript
-import DemosWalletGenerator from './src/wallet-generator.js';
+import { demos } from '@kynesyslabs/demosdk/websdk';
 
-const generator = new DemosWalletGenerator();
+// Connect to network and wallet
+await demos.connect('https://node2.demos.sh');
+await demos.connectWallet(mnemonic);
 
-// Create single wallet
-const wallet = await generator.createWallet();
-console.log(wallet.address, wallet.mnemonic);
-
-// Create multiple wallets
-const wallets = await generator.createMultipleWallets(5);
-
-// Save wallet info
-await generator.saveWalletInfo(wallet, 'my-wallet.json');
+// Three-step transfer process
+const signedTransaction = await demos.transfer(targetAddress, amount);
+const validationData = await demos.confirm(signedTransaction);
+const result = await demos.broadcast(validationData);
 ```
 
-### Faucet Requester
-
-```javascript
-import DemosFaucetRequester from './src/faucet-requester.js';
-
-const requester = new DemosFaucetRequester();
-
-// Check faucet status
-const status = await requester.getFaucetStatus();
-
-// Request tokens
-const result = await requester.requestTokens('0x123...');
-
-// Request for multiple addresses
-const results = await requester.requestTokensForMultiple([
-  '0x123...',
-  '0x456...'
-]);
-```
+**Important**: All three steps (transfer → confirm → broadcast) are required for tokens to actually move.
 
 ## Configuration
 
-### Environment Variables
+Edit the target address in scripts as needed:
+
+```javascript
+const TARGET_ADDRESS = '0x...your-target-address';
+```
+
+### Environment Variables (Optional)
 
 ```bash
-# Optional: Custom RPC endpoint
 DEMOS_RPC_URL=https://node2.demos.sh
-
-# Optional: Custom faucet backend
 FAUCET_BACKEND_URL=https://faucetbackend.demos.sh
 ```
 
-### Wallet Files
+## Wallet Files
 
-Generated wallets are saved as JSON files:
+Generated wallets are saved as JSON:
 
 ```json
 {
   "created": "2024-01-01T12:00:00.000Z",
   "mnemonic": "abandon ability able about above...",
-  "addresses": {
-    "primary": "0x1234567890abcdef...",
-    "ed25519": "0xabcdef1234567890..."
-  },
-  "network": "https://node2.demos.sh",
-  "note": "Keep this file secure!"
+  "address": "0x1234567890abcdef...",
+  "ed25519Address": "0xabcdef1234567890..."
 }
 ```
 
-## Security Considerations
+## Security Notes
 
-- 🔐 **Mnemonics are saved in plain text** - keep wallet files secure
-- 🗑️ **Delete wallet files after use** if you don't need them
-- ⚠️ **This is for testnet only** - don't use for mainnet funds
-- 🔄 **Rate limiting** - tool includes delays to avoid overwhelming the faucet
+- Mnemonics are saved in plain text - keep wallet files secure
+- Delete wallet files after use if not needed
+- This is for testnet only - don't use for mainnet funds
 
-## Error Handling
+## Network Details
 
-The tool includes comprehensive error handling:
+- **Node**: `https://node2.demos.sh`
+- **Faucet**: `https://faucet.demos.sh/`
+- **Token**: DEM (Demos native token)
+- **SDK**: `@kynesyslabs/demosdk`
 
-- **Network errors**: Automatic retries with exponential backoff
-- **Rate limiting**: Intelligent delays between requests
-- **Invalid addresses**: Input validation and helpful error messages
-- **File operations**: Graceful handling of missing/corrupt files
+## Dependencies
 
-## Troubleshooting
-
-### Common Issues
-
-1. **"Failed to connect to Demos Network"**
-   - Check internet connection
-   - Verify RPC endpoint is accessible
-   - Try alternative RPC: `https://demosnode.discus.sh`
-
-2. **"Rate limited" or 429 errors**
-   - Increase delay between requests: `--delay 15000`
-   - Wait a few minutes before trying again
-
-3. **"Invalid address format"**
-   - Ensure address starts with `0x`
-   - Check address length (should be 40-64 characters)
-
-4. **Faucet request fails**
-   - Verify faucet has sufficient balance
-   - Check if address already received tokens recently
-   - Try a different address
-
-### Debug Mode
-
-```bash
-# Enable verbose logging
-DEBUG=* node src/cli.js wallet create
-
-# Check network connectivity
-curl https://faucetbackend.demos.sh/api/balance
-```
-
-## Examples
-
-### Create 10 wallets and request tokens
-
-```bash
-#!/bin/bash
-
-# Create wallets
-node src/cli.js wallet create-multiple --count 10
-
-# Wait a moment
-sleep 5
-
-# Request tokens for all created wallets
-node src/cli.js faucet request-from-files
-
-echo "Done! Check wallet files for addresses and mnemonics."
-```
-
-### Bulk token distribution
-
-```bash
-# Create many wallets for testing
-node src/cli.js auto --count 20 --delay 15000
-
-# Check balances later (you'll need to implement balance checking)
-for file in demos-wallet-*.json; do
-  echo "Checking $file..."
-  # Extract address and check balance
-done
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Add tests for new functionality
-4. Submit a pull request
+- `@kynesyslabs/demosdk` - Demos Network SDK
+- `axios` - HTTP client
+- `chalk` - Terminal styling
+- `commander` - CLI framework
+- `inquirer` - Interactive prompts
 
 ## License
 
-MIT License - see LICENSE file for details.
-
-## Disclaimer
-
-This tool is for educational and testing purposes only. Use responsibly and only on testnets. The authors are not responsible for any loss of funds or misuse of this tool.
+MIT
