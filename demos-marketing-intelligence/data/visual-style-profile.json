@@ -1,0 +1,25 @@
+{
+  "lastUpdated": null,
+  "samplesAnalyzed": 0,
+  "sources": {
+    "twitter": 0,
+    "paragraph": 0
+  },
+  "colorPalette": {
+    "primary": ["#2B36D9", "#FF4808", "#FF35F9", "#00DAFF"],
+    "backgrounds": ["#010109", "#0D0E13", "#FFFFFF"]
+  },
+  "styleCharacteristics": {
+    "composition": ["dark backgrounds", "centered subjects", "minimal elements"],
+    "themes": ["network nodes", "gradients", "tech infrastructure", "cross-chain"],
+    "mood": ["technical", "futuristic", "professional", "innovative"]
+  },
+  "avoidedPatterns": [
+    "cluttered compositions",
+    "cartoon style",
+    "stock photo feel",
+    "excessive text in images"
+  ],
+  "exampleImageUrls": [],
+  "_note": "This is a template. Run '/sc:marketing learn --visuals' to populate with real data from @DemosNetwork images."
+}
