@@ -142,14 +142,15 @@ export class BrandingAgent {
       const args = [
         '--print',
         '--model', 'sonnet',
-        '--disallowed-tools', 'Bash,Edit,Write,Read,Glob,Grep,Task,WebFetch,WebSearch',
-        '--mcp-config', '{"mcpServers":{}}',
         '-p', prompt,
       ];
 
+      // Strip ANTHROPIC_API_KEY from env so Claude CLI uses OAuth auth (subscription)
+      // instead of the API key (which may have insufficient credits)
+      const { ANTHROPIC_API_KEY: _, ...cleanEnv } = process.env;
       const childProcess = spawn(this.claudePath, args, {
         stdio: ['ignore', 'pipe', 'pipe'], // stdin ignored - we pass prompt via args
-        env: { ...process.env, FORCE_COLOR: '0' },
+        env: { ...cleanEnv, FORCE_COLOR: '0' },
       });
 
       let stdout = '';

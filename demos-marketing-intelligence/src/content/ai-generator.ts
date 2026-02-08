@@ -343,17 +343,18 @@ export class AIContentGenerator {
       const args = [
         '--print',              // Output result to stdout
         '--model', 'sonnet',    // Use model alias for faster resolution
-        '--disallowed-tools', 'Bash,Edit,Write,Read,Glob,Grep,Task,WebFetch,WebSearch', // Disable tools - not needed for generation
-        '--mcp-config', '{"mcpServers":{}}', // Disable all MCP servers
         '-p', prompt,           // Pass prompt directly
       ];
 
       console.log(`[AIGenerator] Executing Claude CLI at: ${this.claudePath}`);
       console.log(`[AIGenerator] Prompt length: ${prompt.length} chars`);
 
+      // Strip ANTHROPIC_API_KEY from env so Claude CLI uses OAuth auth (subscription)
+      // instead of the API key (which may have insufficient credits)
+      const { ANTHROPIC_API_KEY: _, ...cleanEnv } = process.env;
       const childProcess = spawn(this.claudePath, args, {
         stdio: ['ignore', 'pipe', 'pipe'], // stdin ignored - we pass prompt via args
-        env: { ...process.env, FORCE_COLOR: '0' },
+        env: { ...cleanEnv, FORCE_COLOR: '0' },
       });
 
       let stdout = '';
@@ -516,7 +517,7 @@ CORRECT OUTPUT: "Bridges move tokens. CCI moves YOU. Big difference."`;
       };
     } catch (error: any) {
       console.error('Error generating content:', error.message);
-      return null;
+      throw error; // Re-throw to allow pipeline fallback
     }
   }
 
