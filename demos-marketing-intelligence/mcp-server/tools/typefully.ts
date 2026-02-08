@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const TYPEFULLY_API_BASE = 'https://api.typefully.com/v1';
+const TYPEFULLY_API_BASE = 'https://api.typefully.com/v2';
 
 export interface TypefullyDraft {
   content: string;
@@ -14,6 +14,18 @@ export interface TypefullyResponse {
   scheduledTime?: string;
 }
 
+async function getSocialSetId(apiKey: string): Promise<string> {
+  const response = await axios.get(`${TYPEFULLY_API_BASE}/social-sets`, {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+  const data = response.data;
+  const sets = data?.results || data?.social_sets || (Array.isArray(data) ? data : []);
+  if (!Array.isArray(sets) || sets.length === 0) {
+    throw new Error('No social sets found on Typefully account');
+  }
+  return String(sets[0].id);
+}
+
 export async function scheduleToTypefully(
   apiKey: string,
   draft: TypefullyDraft
@@ -23,26 +35,31 @@ export async function scheduleToTypefully(
   }
 
   try {
-    // For threads, join with double newlines
-    const content = draft.threadParts
-      ? draft.threadParts.join('\n\n')
-      : draft.content;
+    const socialSetId = await getSocialSetId(apiKey);
+
+    const posts = draft.threadParts
+      ? draft.threadParts.map(text => ({ text }))
+      : [{ text: draft.content }];
 
     const payload: any = {
-      content,
-      threadify: !!draft.threadParts,
+      platforms: {
+        x: {
+          enabled: true,
+          posts,
+        },
+      },
     };
 
     if (draft.scheduledTime) {
-      payload.schedule_date = draft.scheduledTime;
+      payload.publish_at = draft.scheduledTime;
     }
 
     const response = await axios.post(
-      `${TYPEFULLY_API_BASE}/drafts/`,
+      `${TYPEFULLY_API_BASE}/social-sets/${socialSetId}/drafts`,
       payload,
       {
         headers: {
-          'X-API-KEY': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
       }
@@ -50,8 +67,8 @@ export async function scheduleToTypefully(
 
     return {
       id: response.data.id,
-      status: response.data.status || 'scheduled',
-      scheduledTime: response.data.schedule_date,
+      status: response.data.status || 'draft',
+      scheduledTime: response.data.scheduled_date,
     };
   } catch (error: any) {
     if (error.response?.status === 401) {
@@ -70,13 +87,15 @@ export async function getTypefullyDrafts(apiKey: string): Promise<any[]> {
   }
 
   try {
-    const response = await axios.get(`${TYPEFULLY_API_BASE}/drafts/`, {
-      headers: {
-        'X-API-KEY': apiKey,
-      },
-    });
+    const socialSetId = await getSocialSetId(apiKey);
+    const response = await axios.get(
+      `${TYPEFULLY_API_BASE}/social-sets/${socialSetId}/drafts`,
+      {
+        headers: { 'Authorization': `Bearer ${apiKey}` },
+      }
+    );
 
-    return response.data || [];
+    return response.data?.drafts || response.data || [];
   } catch (error: any) {
     throw new Error(`Failed to get Typefully drafts: ${error.message}`);
   }

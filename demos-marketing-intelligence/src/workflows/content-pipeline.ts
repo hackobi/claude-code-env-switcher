@@ -3,6 +3,8 @@ import TwitterRapidAPI, { TrendingTopic } from '../integrations/twitter-rapidapi
 import { CRYPTO_INFLUENCERS, DEMOS_KEYWORDS, Tweet } from '../integrations/twitter';
 import LinearIntegration, { LinearTask } from '../integrations/linear';
 import AIContentGenerator, { GenerationContext } from '../content/ai-generator';
+import { EnhancedAIContentGenerator, EnhancedGeneratedContent } from '../content/ai-generator-enhanced';
+import FallbackContentGenerator from '../content/fallback-generator';
 import RelevanceScorer, { ScoredContent } from '../content/relevance-scorer';
 import BrandingAgent from '../agents/branding-agent';
 import ImageGenerator from '../visual/image-generator';
@@ -24,6 +26,7 @@ export interface PipelineConfig {
   dryRun: boolean;
   useImagen: boolean;           // Use Google Imagen instead of DALL-E
   useDatabase: boolean;         // Use SQLite database for content history
+  useEnhancedAI: boolean;       // Use enhanced multi-step reasoning AI
   googleCloudProject?: string;  // Google Cloud project for Imagen
 }
 
@@ -48,6 +51,8 @@ export class ContentPipeline {
   private twitter: TwitterRapidAPI;
   private linear: LinearIntegration;
   private aiGenerator: AIContentGenerator;
+  private enhancedAIGenerator: EnhancedAIContentGenerator;
+  private fallbackGenerator: FallbackContentGenerator;
   private scorer: RelevanceScorer;
   private brandingAgent: BrandingAgent;
   private imageGenerator: ImageGenerator;
@@ -68,10 +73,12 @@ export class ContentPipeline {
     rapidApiKey: string,
     config: Partial<PipelineConfig> = {}
   ) {
-    this.typefully = new TypefullyClient(typefullyApiKey);
+    this.typefully = new TypefullyClient(typefullyApiKey, process.env.TYPEFULLY_ACCOUNT_ID);
     this.twitter = new TwitterRapidAPI(rapidApiKey); // Use RapidAPI instead of official Twitter API
     this.linear = new LinearIntegration(linearApiKey, linearTeamId);
     this.aiGenerator = new AIContentGenerator(anthropicApiKey);
+    this.enhancedAIGenerator = new EnhancedAIContentGenerator(anthropicApiKey);
+    this.fallbackGenerator = new FallbackContentGenerator();
     this.scorer = new RelevanceScorer();
     this.brandingAgent = new BrandingAgent(anthropicApiKey);
     this.imageGenerator = new ImageGenerator(openaiApiKey);
@@ -80,8 +87,8 @@ export class ContentPipeline {
     this.profileStorage = new ProfileStorage();
 
     this.config = {
-      maxDraftsPerRun: config.maxDraftsPerRun || 5,
-      minRelevanceScore: config.minRelevanceScore || 0, // Disabled threshold for now
+      maxDraftsPerRun: config.maxDraftsPerRun || 15,
+      minRelevanceScore: config.minRelevanceScore || 0.4, // Lowered from 0.6 for better conversion
       enableTwitterMonitoring: config.enableTwitterMonitoring ?? true,
       enableLinearIntegration: config.enableLinearIntegration ?? true,
       enableVisualGeneration: config.enableVisualGeneration ?? true,
@@ -92,6 +99,7 @@ export class ContentPipeline {
       dryRun: config.dryRun ?? false,
       useImagen: config.useImagen ?? false,
       useDatabase: config.useDatabase ?? true,
+      useEnhancedAI: config.useEnhancedAI ?? false, // Use enhanced multi-step reasoning AI
       googleCloudProject: config.googleCloudProject,
     };
 
@@ -305,6 +313,30 @@ export class ContentPipeline {
     // Wait for all sources to complete in parallel
     await Promise.all(gatherPromises);
 
+    // If we have few tweets from live monitoring, supplement with unprocessed database tweets
+    if (this.db && tweets.length < 10) {
+      console.log(`  📚 Supplementing with unprocessed database tweets...`);
+      const dbTweets = this.db.getUnprocessedTweets(50); // Get up to 50 unprocessed tweets
+      
+      // Convert database tweets to Tweet format
+      const formattedTweets = dbTweets.map(dbTweet => ({
+        id: dbTweet.id,
+        text: dbTweet.text,
+        author_id: dbTweet.author_id,
+        author_username: dbTweet.author_username || 'unknown',
+        created_at: dbTweet.created_at,
+        like_count: dbTweet.like_count,
+        retweet_count: dbTweet.retweet_count,
+        reply_count: dbTweet.reply_count,
+        quote_count: dbTweet.quote_count,
+        impression_count: dbTweet.impression_count,
+        source: dbTweet.source as any
+      }));
+
+      tweets.push(...formattedTweets);
+      console.log(`  • Added ${formattedTweets.length} unprocessed database tweets`);
+    }
+
     return { tweets, tasks, trendingTopics, demosContext };
   }
 
@@ -491,12 +523,15 @@ export class ContentPipeline {
     for (let i = 0; i < limit; i++) {
       const item = scoredContent[i];
 
+      // Determine source type for this item
+      const sourceType = 'topic' in item.content ? 'trend' :
+                        'title' in item.content ? 'linear_task' : 'tweet';
+
       try {
+
         // Check if content has already been generated for this source
         // This prevents duplicate content when the same Linear task or trend is processed multiple times
         if (this.db) {
-          const sourceType = 'topic' in item.content ? 'trend' :
-                            'title' in item.content ? 'linear_task' : 'tweet';
 
           // For trends: include date AND a hash of sample tweets to allow same topic with fresh tweets
           // This allows "wallets" to generate new content if the underlying tweets are different
@@ -521,8 +556,34 @@ export class ContentPipeline {
           demosContext,
         };
 
-        // Generate content
-        let generated = await this.aiGenerator.generate(context);
+        // Generate content using enhanced AI or standard generator
+        let generated;
+        let isEnhancedContent = false;
+        
+        if (this.config.useEnhancedAI) {
+          console.log(`  🧠 Using enhanced multi-step reasoning for content generation...`);
+          try {
+            generated = await this.enhancedAIGenerator.generate(context);
+            isEnhancedContent = true;
+          } catch (error: any) {
+            console.log(`  ❌ Enhanced generation failed: ${error.message}`);
+            console.log(`  🔄 Falling back to simple template generation...`);
+            generated = await this.fallbackGenerator.generate(context);
+          }
+        } else {
+          try {
+            generated = await this.aiGenerator.generate(context);
+          } catch (error: any) {
+            console.log(`  ❌ AI generation failed: ${error.message}`);
+            console.log(`  🔄 Falling back to simple template generation...`);
+            generated = await this.fallbackGenerator.generate(context);
+          }
+        }
+
+        // Mark tweet as processed regardless of success (avoid reprocessing)
+        if (sourceType === 'tweet' && item.content.id) {
+          this.db?.markTweetProcessed(item.content.id);
+        }
 
         if (generated) {
           let finalContent = generated.content;
@@ -589,9 +650,7 @@ export class ContentPipeline {
             ? finalContent.join('\n\n')
             : finalContent;
 
-          // Determine source type: TrendingTopic has 'topic', LinearTask has 'title', Tweet has 'text'
-          const sourceType = 'topic' in item.content ? 'trend' :
-                            'title' in item.content ? 'linear_task' : 'tweet';
+          // Determine content type
           const contentType = Array.isArray(finalContent) ? 'thread' : 'tweet';
 
           // Get source ID - TrendingTopic uses topic name as identifier
@@ -600,7 +659,23 @@ export class ContentPipeline {
             : item.content.id;
 
           // Build full context for editing reference
-          const sourceContext = this.buildSourceContext(item.content, item.reasoning);
+          let sourceContext = this.buildSourceContext(item.content, item.reasoning);
+
+          // Add enhanced metadata if available
+          if (isEnhancedContent && generated) {
+            const enhancedContent = generated as EnhancedGeneratedContent;
+            const enhancedData = {
+              reasoning_steps: enhancedContent.reasoning_steps,
+              context_analysis: enhancedContent.context_analysis,
+              strategy: enhancedContent.strategy,
+              quality_assessment: enhancedContent.quality_assessment
+            };
+            
+            // Enhance the source context with AI reasoning data
+            const contextData = sourceContext ? JSON.parse(sourceContext) : {};
+            contextData.enhanced_ai = enhancedData;
+            sourceContext = JSON.stringify(contextData);
+          }
 
           this.storeGeneratedContent(
             contentText,
@@ -622,6 +697,11 @@ export class ContentPipeline {
         await this.sleep(500);
       } catch (error: any) {
         console.error(`  ✗ Generation failed for item ${i}:`, error.message);
+        
+        // Still mark tweet as processed even if generation fails to avoid infinite retries
+        if (sourceType === 'tweet' && item.content.id) {
+          this.db?.markTweetProcessed(item.content.id);
+        }
       }
     }
 
@@ -1119,8 +1199,8 @@ if (require.main === module) {
       process.env.OPENAI_API_KEY || '',
       process.env.RAPIDAPI_KEY || '',
       {
-        maxDraftsPerRun: parseInt(process.env.MAX_DRAFTS_PER_DAY || '5'),
-        minRelevanceScore: parseFloat(process.env.MIN_RELEVANCE_SCORE || '0.6'),
+        maxDraftsPerRun: parseInt(process.env.MAX_DRAFTS_PER_RUN || process.env.MAX_DRAFTS_PER_DAY || '15'),
+        minRelevanceScore: parseFloat(process.env.MIN_RELEVANCE_SCORE || '0.4'),
         enableTwitterMonitoring: process.env.MONITOR_CRYPTO_INFLUENCERS !== 'false',
         enableLinearIntegration: !!process.env.LINEAR_API_KEY,
         enableVisualGeneration: process.env.ENABLE_VISUAL_GENERATION === 'true',
@@ -1129,6 +1209,7 @@ if (require.main === module) {
         brandLearnFromParagraph: process.env.BRAND_LEARN_FROM_PARAGRAPH !== 'false',
         brandProfileUpdateHours: parseInt(process.env.BRAND_PROFILE_UPDATE_HOURS || '168'),
         dryRun: process.env.DRY_RUN === 'true',
+        useEnhancedAI: process.env.USE_ENHANCED_AI === 'true',
       }
     );
 

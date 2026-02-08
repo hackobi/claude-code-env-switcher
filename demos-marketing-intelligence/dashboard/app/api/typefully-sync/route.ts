@@ -38,8 +38,24 @@ async function loadEnv(): Promise<Record<string, string>> {
 /**
  * Fetch drafts from Typefully API
  */
+async function getSocialSetId(apiKey: string): Promise<string> {
+  const response = await fetch('https://api.typefully.com/v2/social-sets', {
+    headers: { 'Authorization': `Bearer ${apiKey}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch social sets: ${response.status}`);
+  }
+  const data = await response.json();
+  const sets = data.results || data.social_sets || (Array.isArray(data) ? data : []);
+  if (!Array.isArray(sets) || sets.length === 0) {
+    throw new Error('No social sets found on Typefully account');
+  }
+  return String(sets[0].id);
+}
+
 async function fetchTypefullyDrafts(apiKey: string): Promise<TypefullyDraft[]> {
-  const response = await fetch('https://api.typefully.com/v1/drafts', {
+  const socialSetId = await getSocialSetId(apiKey);
+  const response = await fetch(`https://api.typefully.com/v2/social-sets/${socialSetId}/drafts`, {
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
@@ -51,14 +67,12 @@ async function fetchTypefullyDrafts(apiKey: string): Promise<TypefullyDraft[]> {
   }
 
   const data = await response.json();
-  return data.drafts || [];
+  return data.drafts || data || [];
 }
 
-/**
- * Get published tweets from Typefully (those that have been shared)
- */
 async function fetchTypefullyPublished(apiKey: string): Promise<TypefullyDraft[]> {
-  const response = await fetch('https://api.typefully.com/v1/drafts?filter=published', {
+  const socialSetId = await getSocialSetId(apiKey);
+  const response = await fetch(`https://api.typefully.com/v2/social-sets/${socialSetId}/drafts?status=published`, {
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
@@ -66,13 +80,12 @@ async function fetchTypefullyPublished(apiKey: string): Promise<TypefullyDraft[]
   });
 
   if (!response.ok) {
-    // Some plans may not support this endpoint
     console.warn('Could not fetch published drafts from Typefully');
     return [];
   }
 
   const data = await response.json();
-  return data.drafts || [];
+  return data.drafts || data || [];
 }
 
 /**

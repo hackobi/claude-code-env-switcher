@@ -59,7 +59,7 @@ async function generateFromPrompt(prompt: string, type: string = 'tweet') {
     readline.question('Send to Typefully? (y/n): ', async (answer: string) => {
       if (answer.toLowerCase() === 'y') {
         try {
-          const typefully = new TypefullyClient(process.env.TYPEFULLY_API_KEY!);
+          const typefully = new TypefullyClient(process.env.TYPEFULLY_API_KEY!, process.env.TYPEFULLY_ACCOUNT_ID);
           await typefully.createDraft({
             content: generated!.content,
             share: true,

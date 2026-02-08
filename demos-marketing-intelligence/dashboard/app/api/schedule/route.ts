@@ -228,34 +228,6 @@ async function scheduleToTypefullyV2(
   return { id: data.id || data.draft_id || 'created' };
 }
 
-/**
- * Fallback to v1 API (text only, no images)
- */
-async function scheduleToTypefullyV1(
-  apiKey: string,
-  content: string
-): Promise<{ id: string }> {
-  const response = await fetch('https://api.typefully.com/v1/drafts/', {
-    method: 'POST',
-    headers: {
-      'X-API-KEY': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      content: content,
-      threadify: false,
-      auto_retweet_enabled: false,
-      auto_plug_enabled: false,
-    }),
-  });
-
-  if (!response.ok) {
-    const error = await response.text();
-    throw new Error(`Typefully API error: ${response.status} - ${error}`);
-  }
-
-  return await response.json();
-}
 
 export async function POST(request: Request) {
   try {
@@ -296,33 +268,20 @@ export async function POST(request: Request) {
     // Check if we have an image (data URL format)
     const hasImage = row.image_path && row.image_path.startsWith('data:image/');
 
-    // Always try v2 API first (required for image uploads)
-    try {
-      console.log('[Schedule] Using Typefully v2 API...');
-      const socialSetId = await getSocialSetId(apiKey);
-      console.log('[Schedule] Got social set ID:', socialSetId);
+    console.log('[Schedule] Using Typefully v2 API...');
+    const socialSetId = await getSocialSetId(apiKey);
+    console.log('[Schedule] Got social set ID:', socialSetId);
 
-      let mediaId: string | undefined;
-      if (hasImage) {
-        mediaId = await uploadImageToTypefully(apiKey, socialSetId, row.image_path!);
-        console.log('[Schedule] Uploaded image, media_id:', mediaId);
-      }
-
-      result = await scheduleToTypefullyV2(apiKey, socialSetId, row.content, row.content_type, mediaId);
-      usedV2 = true;
-      const isThread = row.content_type === 'thread' || row.content.includes('\n---\n');
-      console.log('[Schedule] Created draft via v2 API', isThread ? 'as thread' : 'single tweet', hasImage ? 'with image' : 'text only');
-    } catch (v2Error) {
-      console.warn('[Schedule] v2 API failed, trying v1 fallback:', v2Error);
-      // Fall back to v1 (text only) - will fail if using v2-only key
-      try {
-        result = await scheduleToTypefullyV1(apiKey, row.content);
-        console.log('[Schedule] Created draft via v1 API (text only)');
-      } catch (v1Error) {
-        // Both APIs failed
-        throw new Error(`Typefully API failed. v2: ${v2Error instanceof Error ? v2Error.message : v2Error}, v1: ${v1Error instanceof Error ? v1Error.message : v1Error}`);
-      }
+    let mediaId: string | undefined;
+    if (hasImage) {
+      mediaId = await uploadImageToTypefully(apiKey, socialSetId, row.image_path!);
+      console.log('[Schedule] Uploaded image, media_id:', mediaId);
     }
+
+    result = await scheduleToTypefullyV2(apiKey, socialSetId, row.content, row.content_type, mediaId);
+    usedV2 = true;
+    const isThread = row.content_type === 'thread' || row.content.includes('\n---\n');
+    console.log('[Schedule] Created draft via v2 API', isThread ? 'as thread' : 'single tweet', hasImage ? 'with image' : 'text only');
 
     // Update the item status and typefully_id in database
     const updateStmt = db.prepare(
