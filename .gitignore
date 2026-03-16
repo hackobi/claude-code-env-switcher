@@ -1,6 +1,12 @@
+.DS_Store
+.playwright-mcp/
+.claude/PROJECT_CONTEXT_*.md
 ralph-gui/
 claude-code-env-switcher/
 dwarf-fortress-nft-game/
 kynesys-node/
 orbit-runner/
 simple-prediction-app/
+omnifomo/
+demos-faucet-automation/
+src/
