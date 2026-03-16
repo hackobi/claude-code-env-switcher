@@ -121,13 +121,58 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (populated during roadmap creation) | | |
+| INGEST-01 | Phase 2: Price Feed | Pending |
+| INGEST-02 | Phase 2: Price Feed | Pending |
+| INGEST-03 | Phase 3: News Ingestion | Pending |
+| INGEST-04 | Phase 3: News Ingestion | Pending |
+| INGEST-05 | Phase 4: Twitter Ingestion | Pending |
+| INGEST-06 | Phase 4: Twitter Ingestion | Pending |
+| INGEST-07 | Phase 4: Twitter Ingestion | Pending |
+| INGEST-08 | Phase 4: Twitter Ingestion | Pending |
+| CLASS-01 | Phase 5: Event Classification | Pending |
+| CLASS-02 | Phase 5: Event Classification | Pending |
+| CLASS-03 | Phase 5: Event Classification | Pending |
+| CLASS-04 | Phase 5: Event Classification | Pending |
+| CLASS-05 | Phase 5: Event Classification | Pending |
+| CLASS-06 | Phase 5: Event Classification | Pending |
+| SENT-01 | Phase 6: Sentiment & Fundamentals | Pending |
+| SENT-02 | Phase 6: Sentiment & Fundamentals | Pending |
+| SENT-03 | Phase 6: Sentiment & Fundamentals | Pending |
+| PRED-01 | Phase 7: Prediction Engine | Pending |
+| PRED-02 | Phase 7: Prediction Engine | Pending |
+| PRED-03 | Phase 7: Prediction Engine | Pending |
+| PRED-04 | Phase 7: Prediction Engine | Pending |
+| PRED-05 | Phase 7: Prediction Engine | Pending |
+| PRED-06 | Phase 7: Prediction Engine | Pending |
+| PRED-07 | Phase 7: Prediction Engine | Pending |
+| FUND-01 | Phase 2: Price Feed | Pending |
+| FUND-02 | Phase 6: Sentiment & Fundamentals | Pending |
+| FUND-03 | Phase 6: Sentiment & Fundamentals | Pending |
+| SCEN-01 | Phase 9: Scenarios & Reporting | Pending |
+| SCEN-02 | Phase 9: Scenarios & Reporting | Pending |
+| SCEN-03 | Phase 9: Scenarios & Reporting | Pending |
+| SCEN-04 | Phase 9: Scenarios & Reporting | Pending |
+| DASH-01 | Phase 8: Dashboard | Pending |
+| DASH-02 | Phase 8: Dashboard | Pending |
+| DASH-03 | Phase 8: Dashboard | Pending |
+| DASH-04 | Phase 8: Dashboard | Pending |
+| DASH-05 | Phase 8: Dashboard | Pending |
+| DASH-06 | Phase 8: Dashboard | Pending |
+| REPT-01 | Phase 9: Scenarios & Reporting | Pending |
+| REPT-02 | Phase 9: Scenarios & Reporting | Pending |
+| REPT-03 | Phase 9: Scenarios & Reporting | Pending |
+| INFRA-01 | Phase 1: Foundation | Pending |
+| INFRA-02 | Phase 1: Foundation | Pending |
+| INFRA-03 | Phase 1: Foundation | Pending |
+| INFRA-04 | Phase 1: Foundation | Pending |
+| INFRA-05 | Phase 7: Prediction Engine | Pending |
+| INFRA-06 | Phase 7: Prediction Engine | Pending |
 
 **Coverage:**
-- v1 requirements: 40 total
-- Mapped to phases: 0
-- Unmapped: 40 ⚠️
+- v1 requirements: 46 total
+- Mapped to phases: 46
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-16*
-*Last updated: 2026-03-16 after initial definition*
+*Last updated: 2026-03-17 after roadmap creation*
