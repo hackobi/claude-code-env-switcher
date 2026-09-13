@@ -1,9 +1,9 @@
-import type { Metadata } from 'next';
-import './globals.css';
+import type { Metadata } from "next";
+import "./globals.css";
 
 export const metadata: Metadata = {
-  title: 'Demos Marketing Intelligence',
-  description: 'AI-powered marketing automation for Demos Network',
+  title: "Social Engine",
+  description: "Your clients, content and creative work in one place",
 };
 
 export default function RootLayout({

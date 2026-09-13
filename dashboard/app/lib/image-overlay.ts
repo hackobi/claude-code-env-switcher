@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import sharp, { type OverlayOptions as SharpOverlayOptions } from 'sharp';
 import path from 'path';
 import { promises as fs } from 'fs';
 
@@ -195,7 +195,7 @@ export async function applyLogoOverlay(
   const taglineLines = tagline ? wrapText(tagline, maxCharsPerLine) : [];
 
   // Build composite layers
-  const composites: sharp.OverlayOptions[] = [];
+  const composites: SharpOverlayOptions[] = [];
 
   // === TOP LEFT: Logo + "Demos" text ===
   const logoLeft = opts.padding;

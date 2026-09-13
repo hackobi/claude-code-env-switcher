@@ -15,7 +15,13 @@
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
     "monitor": "tsx src/cli/monitor.ts",
-    "generate": "tsx src/cli/generate.ts"
+    "generate": "tsx src/cli/generate.ts",
+    "app": "node scripts/start-social-engine.mjs",
+    "app:start": "node scripts/start-social-engine.mjs --production",
+    "app:build": "npm --prefix dashboard run build",
+    "test:engine": "npm --prefix dashboard run test:engine",
+    "app:background": "node scripts/background-app.mjs install",
+    "app:stop": "node scripts/background-app.mjs stop"
   },
   "keywords": [
     "demos",
