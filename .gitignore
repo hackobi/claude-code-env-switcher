@@ -88,3 +88,6 @@ generated-images/
 !claudedocs/source-recovery-2026-09-13.json
 !claudedocs/implementation-2026-09-13.md
 !dashboard/package-lock.json
+
+# Private local task state
+.mycelium/
