@@ -29,6 +29,8 @@ export function Settings({
     >([]),
     [account, setAccount] = useState(""),
     [platform, setPlatform] = useState<Platform>(data.client.channels[0]);
+  const channelOptions: Platform[] =
+    rail === "zernio" ? ["instagram", "facebook"] : p.channels;
   async function action(op: string, body: unknown) {
     setBusy(true);
     setError("");
@@ -268,7 +270,9 @@ export function Settings({
             <select
               value={rail}
               onChange={(e) => {
-                setRail(e.target.value as typeof rail);
+                const nextRail = e.target.value as typeof rail;
+                setRail(nextRail);
+                setPlatform(nextRail === "zernio" ? "instagram" : "x");
                 setAvailable([]);
                 setAccount("");
               }}
@@ -285,7 +289,7 @@ export function Settings({
               value={platform}
               onChange={(e) => setPlatform(e.target.value as Platform)}
             >
-              {p.channels.map((ch) => (
+              {channelOptions.map((ch) => (
                 <option key={ch}>{ch}</option>
               ))}
             </select>

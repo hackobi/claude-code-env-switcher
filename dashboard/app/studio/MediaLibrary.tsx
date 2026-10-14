@@ -17,6 +17,7 @@ export function MediaLibrary({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [source, setSource] = useState(""),
+    [draftId, setDraftId] = useState(""),
     [prompt, setPrompt] = useState(""),
     [mode, setMode] = useState("graphic"),
     [status, setStatus] = useState("");
@@ -58,6 +59,7 @@ export function MediaLibrary({
           mode,
           prompt,
           ...(source ? { sourceId: source } : {}),
+          ...(draftId ? { draftId } : {}),
         });
       setStatus(
         mode === "graphic" || mode === "story"
@@ -137,6 +139,17 @@ export function MediaLibrary({
               <option value="story">Photo + headline · story</option>
               <option value="image">Higgsfield graphic</option>
               <option value="video">Higgsfield video · 5 seconds</option>
+            </select>
+          </label>
+          <label className="field">
+            Attach to draft (optional)
+            <select value={draftId} onChange={(e) => setDraftId(e.target.value)}>
+              <option value="">Keep in media library only</option>
+              {data.items
+                .filter((d) => ["draft", "needs_review", "changes_requested"].includes(d.status))
+                .map((d) => (
+                  <option key={d.id} value={d.id}>{d.title}</option>
+                ))}
             </select>
           </label>
           <label className="field">

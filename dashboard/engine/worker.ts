@@ -9,6 +9,7 @@ import { sync } from "./publish";
 import { Job } from "./types";
 import { acquireWorker } from "./worker-lock";
 import { dailyBackup } from "./backups";
+import { forClient } from "./repository";
 
 const release = acquireWorker();
 migrateLegacy();
@@ -46,6 +47,12 @@ async function work(job: Job) {
         payload.mode,
         payload.sourceId,
       );
+      if (payload.draftId) {
+        const repo = forClient(c);
+        const draft = repo.get(payload.draftId);
+        if (!draft.assetIds.includes(asset.id))
+          repo.save({ ...draft, assetIds: [...draft.assetIds, asset.id] }, draft.id);
+      }
       finish(job, { assetId: asset.id });
     }
   } catch (e) {

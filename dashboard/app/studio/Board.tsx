@@ -36,6 +36,10 @@ export function Board({
       setBusy(false);
     }
   };
+  const closeEditor = () => {
+    setEditing(null);
+    setError("");
+  };
   const columns = [
     {
       name: "Needs review",
@@ -118,6 +122,23 @@ export function Board({
                 Edit
               </button>
             )}
+            {["draft", "needs_review", "changes_requested"].includes(
+              d.status,
+            ) &&
+              !d.assetIds.length && (
+                <button
+                  disabled={busy}
+                  onClick={() =>
+                    run("media", {
+                      mode: "image",
+                      prompt: d.notes || d.title,
+                      draftId: d.id,
+                    })
+                  }
+                >
+                  Generate Higgsfield image
+                </button>
+              )}
             {["draft", "needs_review"].includes(d.status) && (
               <button
                 disabled={busy || !!d.gate.length}
@@ -240,7 +261,12 @@ export function Board({
         </div>
       )}
       {editing && (
-        <div className="modal-backdrop">
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeEditor();
+          }}
+        >
           <section
             role="dialog"
             aria-modal="true"
@@ -253,7 +279,7 @@ export function Board({
                   ? "Review & hand off"
                   : "Draft editor"}
               </h2>
-              <button onClick={() => setEditing(null)}>Close ×</button>
+              <button onClick={closeEditor}>Close ×</button>
             </div>
             <label className="field">
               Title
