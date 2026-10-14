@@ -21,7 +21,12 @@ export function Board({
     [link, setLink] = useState<{ url: string; localOnly: boolean } | null>(
       null,
     ),
-    [when, setWhen] = useState("");
+    [when, setWhen] = useState(""),
+    [regenerating, setRegenerating] = useState<{
+      draft: Item;
+      assetId: string;
+      prompt: string;
+    } | null>(null);
   const run = async (op: string, body: unknown) => {
     setBusy(true);
     setError("");
@@ -67,6 +72,15 @@ export function Board({
     });
   function card(d: Item) {
     const a = data.assets.find((a) => a.id === d.assetIds[0]);
+    const mediaJob = data.jobs.find((j) => {
+      if (j.type !== "media" || !["queued", "running"].includes(j.status))
+        return false;
+      try {
+        return JSON.parse(j.payload).draftId === d.id;
+      } catch {
+        return false;
+      }
+    });
     return (
       <article className="content-card" key={d.id}>
         {a &&
@@ -112,6 +126,22 @@ export function Board({
             ))}
           </div>
           <div className="actions">
+            {a && (
+              <button
+                disabled={!!mediaJob || busy}
+                onClick={() =>
+                  setRegenerating({
+                    draft: d,
+                    assetId: a.id,
+                    prompt: d.notes || `Create a new visual for: ${d.title}`,
+                  })
+                }
+              >
+                {mediaJob
+                  ? `Generating image · ${mediaJob.progress}`
+                  : "Change image"}
+              </button>
+            )}
             {[
               "draft",
               "needs_review",
@@ -127,7 +157,7 @@ export function Board({
             ) &&
               !d.assetIds.length && (
                 <button
-                  disabled={busy}
+                  disabled={busy || !!mediaJob}
                   onClick={() =>
                     run("media", {
                       mode: "image",
@@ -136,7 +166,9 @@ export function Board({
                     })
                   }
                 >
-                  Generate Higgsfield image
+                  {mediaJob
+                    ? `Generating image · ${mediaJob.progress}`
+                    : "Generate Higgsfield image"}
                 </button>
               )}
             {["draft", "needs_review"].includes(d.status) && (
@@ -407,6 +439,51 @@ export function Board({
                 Save for review
               </button>
             </div>
+          </section>
+        </div>
+      )}
+      {regenerating && (
+        <div
+          className="modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setRegenerating(null);
+          }}
+        >
+          <section className="modal" role="dialog" aria-modal="true">
+            <div className="section-title">
+              <h2>Change image</h2>
+              <button onClick={() => setRegenerating(null)}>Close ×</button>
+            </div>
+            <p className="muted">
+              Describe what should change. The new Higgsfield image stays in
+              review until you approve it.
+            </p>
+            <label className="field">
+              Regeneration direction
+              <textarea
+                rows={5}
+                value={regenerating.prompt}
+                onChange={(e) =>
+                  setRegenerating({ ...regenerating, prompt: e.target.value })
+                }
+              />
+            </label>
+            <button
+              className="primary"
+              disabled={busy || !regenerating.prompt.trim()}
+              onClick={async () => {
+                const request = regenerating;
+                const result = await run("media", {
+                  mode: "image",
+                  prompt: request.prompt,
+                  draftId: request.draft.id,
+                  replaceAssetId: request.assetId,
+                });
+                if (result) setRegenerating(null);
+              }}
+            >
+              Send to Higgsfield ↗
+            </button>
           </section>
         </div>
       )}

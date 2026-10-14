@@ -50,8 +50,14 @@ async function work(job: Job) {
       if (payload.draftId) {
         const repo = forClient(c);
         const draft = repo.get(payload.draftId);
-        if (!draft.assetIds.includes(asset.id))
-          repo.save({ ...draft, assetIds: [...draft.assetIds, asset.id] }, draft.id);
+        const assetIds = payload.replaceAssetId
+          ? draft.assetIds.map((id: string) =>
+              id === payload.replaceAssetId ? asset.id : id,
+            )
+          : draft.assetIds.includes(asset.id)
+            ? draft.assetIds
+            : [...draft.assetIds, asset.id];
+        repo.save({ ...draft, assetIds }, draft.id);
       }
       finish(job, { assetId: asset.id });
     }

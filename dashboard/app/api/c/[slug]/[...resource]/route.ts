@@ -146,6 +146,7 @@ export async function POST(request: Request, context: Context) {
               prompt: z.string().min(5).max(4000),
               sourceId: z.string().optional(),
               draftId: z.string().optional(),
+              replaceAssetId: z.string().optional(),
             })
             .parse(body),
         );
