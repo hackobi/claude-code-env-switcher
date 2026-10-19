@@ -16,6 +16,14 @@ export function middleware(req: NextRequest) {
       "Operator workspace is available on localhost only",
       { status: 403 },
     );
+  // Olympus ops API: server-to-server without cookies, so no same-origin check. The route
+  // handler verifies the token itself (edge middleware has no fs); requiring the header here
+  // still blocks browser form posts.
+  if (path.startsWith("/api/ops/")) {
+    if (!/^Bearer \S+$/.test(req.headers.get("authorization") || ""))
+      return new NextResponse(null, { status: 401 });
+    return NextResponse.next();
+  }
   if (
     path.startsWith("/api/") &&
     !path.startsWith("/api/c/") &&

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Client, Draft } from "./types";
+import { Client, Draft, platformSchema } from "./types";
 import { db } from "./db";
 import { forClient } from "./repository";
 import { credential } from "./credentials";
@@ -52,6 +52,32 @@ export function publicationCheck(c: Client, d: Draft, when?: string) {
   if (!credential(c, selected[0].provider))
     throw new Error("Publishing API key is missing");
   return { selected, assets, provider: selected[0].provider };
+}
+// Typefully keeps a draft unscheduled unless the request sets publish_at. Allow only plain draft
+// fields so no schedule or publish instruction can be added unnoticed.
+export function assertUnscheduledDraft(body: unknown) {
+  const only = (value: unknown, keys: readonly string[]) =>
+    !!value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    Object.keys(value).every((k) => keys.includes(k));
+  const platforms = (body as { platforms?: Record<string, unknown> })
+    ?.platforms;
+  if (
+    !only(body, ["platforms"]) ||
+    !only(platforms, platformSchema.options) ||
+    !Object.values(platforms!).every((p) => {
+      const posts = (p as { posts?: unknown })?.posts;
+      return (
+        only(p, ["enabled", "posts"]) &&
+        Array.isArray(posts) &&
+        posts.every((post) => only(post, ["text", "media_ids"]))
+      );
+    })
+  )
+    throw new Error(
+      "Refusing to send a Typefully request that is not a plain unscheduled draft",
+    );
 }
 export async function publish(
   c: Client,
@@ -174,33 +200,40 @@ export async function publish(
           throw new Error("Typefully media is not ready; retry handoff later");
         mediaIds.push(upload.media_id);
       }
+      const draft = {
+        platforms: Object.fromEntries(
+          d.variants.map((v) => [
+            v.platform,
+            {
+              enabled: true,
+              posts: [
+                {
+                  text: v.text,
+                  ...(mediaIds.length ? { media_ids: mediaIds } : {}),
+                },
+              ],
+            },
+          ]),
+        ),
+      };
+      assertUnscheduledDraft(draft);
       submitted = true;
       result = await api(
         `${TYPEFULLY}/social-sets/${encodeURIComponent(setId)}/drafts`,
         key,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            platforms: Object.fromEntries(
-              d.variants.map((v) => [
-                v.platform,
-                {
-                  enabled: true,
-                  posts: [
-                    {
-                      text: v.text,
-                      ...(mediaIds.length ? { media_ids: mediaIds } : {}),
-                    },
-                  ],
-                },
-              ]),
-            ),
-          }),
-        },
+        { method: "POST", body: JSON.stringify(draft) },
       );
       if (!result?.id)
         throw new Error(
           "Provider accepted request without a draft ID; reconcile before retry",
+        );
+      if (
+        result.status !== "draft" ||
+        result.scheduled_date ||
+        result.published_at
+      )
+        throw new Error(
+          "Typefully did not confirm an unscheduled draft; check it there before retrying",
         );
     }
     db.prepare(

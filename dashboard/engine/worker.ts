@@ -10,9 +10,18 @@ import { Job } from "./types";
 import { acquireWorker } from "./worker-lock";
 import { dailyBackup } from "./backups";
 import { forClient } from "./repository";
+import { ensureOpsToken } from "./ops-token";
+import { ensureRuleFile } from "./standing-rule";
 
 const release = acquireWorker();
 migrateLegacy();
+// The ops API fails closed without these; a setup problem must not stop the worker.
+for (const setup of [ensureOpsToken, ensureRuleFile])
+  try {
+    setup();
+  } catch (e) {
+    console.error("Ops API setup failed:", (e as Error).message);
+  }
 // Never replay an interrupted paid request: its vendor-side outcome can be unknown.
 db.prepare(
   "UPDATE jobs SET status='failed',error='Worker restarted during a request. Check provider activity before retrying.',progress='Needs reconciliation' WHERE status='running'",
